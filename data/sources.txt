@@ -1,0 +1,10 @@
+# Pages web officielles à indexer (une URL par ligne, # = commentaire)
+# Les PDF placés dans data/raw/ sont aussi indexés automatiquement.
+https://www.service-public.fr/particuliers/vosdroits/F2258
+https://www.service-public.fr/particuliers/vosdroits/F19030
+https://www.service-public.fr/particuliers/vosdroits/F2391
+https://www.service-public.fr/particuliers/vosdroits/F2405
+https://www.service-public.fr/particuliers/vosdroits/F1911
+https://www.service-public.fr/particuliers/vosdroits/F13851
+https://www.service-public.fr/particuliers/vosdroits/F1906
+https://www.service-public.fr/particuliers/vosdroits/F2883
