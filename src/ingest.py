@@ -1,9 +1,14 @@
-"""Indexation : charger les sources, les découper, les stocker dans Chroma."""
+"""Indexation : charger les sources, les découper, les stocker dans Chroma.
+"""
 import re
+import shutil
+import time
 
 import requests
 from bs4 import BeautifulSoup
+from langchain_chroma import Chroma
 from langchain_core.documents import Document
+from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import config
@@ -58,15 +63,28 @@ def split_pages(pages) -> list[Document]:
     return chunks
 
 
+def index_chunks(chunks) -> Chroma:
+    """Calcule l'embedding de chaque morceau et les stocke dans Chroma (sur le disque)."""
+    if config.CHROMA_DIR.exists():
+        shutil.rmtree(config.CHROMA_DIR)  # on repart de zéro pour éviter les doublons
+    return Chroma.from_documents(
+        chunks,
+        OllamaEmbeddings(model=config.EMBED_MODEL),
+        collection_name=config.COLLECTION,
+        persist_directory=str(config.CHROMA_DIR),
+        collection_metadata={"hnsw:space": "cosine"},
+    )
+
 
 if __name__ == "__main__":
+    print("1/3 Chargement des pages...")
     pages = load_web_pages()
+
+    print("\n2/3 Découpage...")
     chunks = split_pages(pages)
-    print(f"\n{len(pages)} pages -> {len(chunks)} morceaux")
+    print(f"{len(pages)} pages -> {len(chunks)} morceaux")
 
-    sizes = [len(chunk.page_content) for chunk in chunks]
-    print(f"Taille des morceaux : min {min(sizes)}, max {max(sizes)}, moyenne {sum(sizes) // len(sizes)}")
-
-    print("\n--- Exemple : le morceau n°5 ---")
-    print(chunks[5].metadata)
-    print(chunks[5].page_content)
+    print("\n3/3 Calcul des embeddings et indexation...")
+    start = time.time()
+    store = index_chunks(chunks)
+    print(f"{len(store.get()['ids'])} morceaux indexés en {time.time() - start:.0f} s dans {config.CHROMA_DIR}")
