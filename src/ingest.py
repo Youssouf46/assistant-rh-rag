@@ -52,7 +52,11 @@ def split_pages(pages) -> list[Document]:
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=config.CHUNK_SIZE, chunk_overlap=config.CHUNK_OVERLAP
     )
-    return splitter.split_documents(docs)
+    chunks = splitter.split_documents(docs)
+    for chunk in chunks:
+        chunk.page_content = f"{chunk.metadata['title']}\n{chunk.page_content}"
+    return chunks
+
 
 
 if __name__ == "__main__":
