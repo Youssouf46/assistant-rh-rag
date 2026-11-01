@@ -8,7 +8,7 @@ CHROMA_DIR = ROOT / "chroma_db"
 COLLECTION = "droit_travail"
 
 # Modèles Ollama (100 % local)
-LLM_MODEL = "mistral"     # génère les réponses
+LLM_MODEL = "ministral-3:8b"     # génère les réponses
 EMBED_MODEL = "bge-m3"    # transforme le texte en vecteurs (très bon en français)
 
 # Découpage des documents
