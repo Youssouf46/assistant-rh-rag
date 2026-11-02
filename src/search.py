@@ -1,4 +1,4 @@
-"""Recherche hybride : sens (vecteurs) + mots exacts (BM25), puis fusion des deux classements (sans LLM).
+"""Recherche hybride (vecteurs + BM25, fusion RRF), puis reranking par un cross-encoder (sans LLM).
 """
 import re
 import sys
@@ -8,6 +8,7 @@ from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
 from rank_bm25 import BM25Okapi
+from sentence_transformers import CrossEncoder
 
 import config
 
@@ -45,7 +46,8 @@ def keyword_search(question: str, k: int) -> list[Document]:
     bm25, chunks = get_bm25()
     scores = bm25.get_scores(tokenize(question))
     best = sorted(range(len(chunks)), key=lambda i: scores[i], reverse=True)[:k]
-    return [chunks[i] for i in best]
+    return [chunks[i] for i in best if scores[i] > 0]   # score 0 = aucun mot en commun : on l'écarte
+
 
 
 def reciprocal_rank_fusion(rankings: list[list[Document]], c: int = 60) -> list[Document]:
@@ -65,12 +67,38 @@ def hybrid_search(question: str, k: int = config.TOP_K) -> list[Document]:
     return reciprocal_rank_fusion([vector_results, keyword_results])[:k]
 
 
+@cache
+def get_reranker() -> CrossEncoder:
+    """Charge le reranker une seule fois, depuis le disque (aucune connexion à Internet)."""
+    try:
+        return CrossEncoder(config.RERANK_MODEL, max_length=512, local_files_only=True)
+    except OSError:
+        # Premier lancement : le modèle n'est pas encore sur le disque, on le télécharge
+        return CrossEncoder(config.RERANK_MODEL, max_length=512)
+
+
+
+def rerank(question: str, chunks: list[Document], k: int) -> list[Document]:
+    """Le cross-encoder lit la question avec chaque morceau et note leur pertinence."""
+    scores = get_reranker().predict([(question, chunk.page_content) for chunk in chunks])
+    best = sorted(range(len(chunks)), key=lambda i: scores[i], reverse=True)[:k]
+    return [chunks[i] for i in best]
+
+
+def search_and_rerank(question: str, k: int = config.TOP_K) -> list[Document]:
+    """Recherche complète : 10 candidats par la recherche hybride, puis les k meilleurs selon le reranker."""
+    candidates = hybrid_search(question, k=config.RERANK_CANDIDATES)
+    return rerank(question, candidates, k)
+
+
+
 if __name__ == "__main__":
     question = " ".join(sys.argv[1:]) or input("Votre question : ")
     results = {
         "Vecteurs": get_store().similarity_search(question, k=config.TOP_K),
         "Mots-clés (BM25)": keyword_search(question, k=config.TOP_K),
         "Hybride": hybrid_search(question),
+        "Hybride + reranking": search_and_rerank(question),
     }
     for name, chunks in results.items():
         print(f"\n=== {name} ===")

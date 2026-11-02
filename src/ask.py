@@ -8,7 +8,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
 import config
-from search import hybrid_search     
+from search import search_and_rerank  
 
 PROMPT = ChatPromptTemplate.from_messages([
     ("system", """Tu es un assistant RH spécialisé en droit du travail français (secteur privé).
@@ -68,7 +68,8 @@ def format_context(chunks) -> str:
 
 def retrieve(question: str):
     """R = Retrieval : les morceaux les plus proches de la question."""
-    return hybrid_search(question)  
+    return search_and_rerank(question)
+ 
 
 
 def build_chain(model: str = config.LLM_MODEL):

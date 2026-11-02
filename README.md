@@ -17,6 +17,7 @@ Tout tourne **en local** avec des modèles open source (Ollama) : aucune donnée
                           │ morceaux → embeddings (bge-m3)│        │   → embedding (bge-m3)        │
                           │ → base vectorielle Chroma ────┼──────▶ │   → recherche hybride :       │
                           └──────────────────────────────┘        │     vecteurs + BM25, fusion   │
+                                                                  │   → reranking (cross-encoder) │
                                                                   │   → prompt + morceaux         │
                                                                   │   → Mistral (Ollama)          │
                                                                   │   → réponse + sources [1][2]  │
@@ -32,11 +33,12 @@ Tout tourne **en local** avec des modèles open source (Ollama) : aucune donnée
 | Orchestration RAG | **LangChain** |
 | Base vectorielle | **ChromaDB** |
 | Recherche | **Hybride** : vecteurs (sens) + **BM25** (mots exacts, `rank_bm25`), fusion par rang réciproque (RRF) |
+| Reranking | **bge-reranker-v2-m3** (cross-encoder multilingue, `sentence-transformers`, chargé hors ligne) |
 | Sources | Fiches officielles [service-public.fr](https://www.service-public.fr) (droit du travail, secteur privé) |
 
 ## Installation
 
-Prérequis : Python 3.12, [Ollama](https://ollama.com/download), environ 8 Go de RAM libre.
+Prérequis : Python 3.12, [Ollama](https://ollama.com/download), environ 8 Go de RAM libre, environ 4 Go de disque pour PyTorch et le reranker (téléchargé automatiquement au premier lancement).
 
 ```bash
 # 1. Modèles locaux
@@ -60,7 +62,7 @@ streamlit run src/app.py            # http://localhost:8501
 
 # 2b. Ou en ligne de commande
 python src/ask.py "Combien de jours de congés payés a un salarié ?"
-python src/search.py "télétravail"  # recherche seule, sans LLM : classements vecteurs, BM25 et hybride
+python src/search.py "télétravail"  # recherche seule, sans LLM : vecteurs, BM25, hybride, hybride + reranking
 ```
 
 ## Structure du projet
@@ -72,7 +74,7 @@ python src/search.py "télétravail"  # recherche seule, sans LLM : classements 
 ├── src/
 │   ├── config.py       # paramètres : modèles, taille des morceaux, nombre de résultats
 │   ├── ingest.py       # chargement, nettoyage, découpage et indexation dans Chroma
-│   ├── search.py       # recherche hybride : vecteurs + BM25, fusion RRF (sans LLM)
+│   ├── search.py       # recherche hybride (vecteurs + BM25, fusion RRF) puis reranking (sans LLM)
 │   ├── app.py          # interface web de chat (Streamlit, streaming, sources)
 │   ├── ask.py          # assistant : recherche + LLM + réponse avec sources
 │   └── compare.py      # comparaison de modèles sur les mêmes questions
@@ -108,6 +110,19 @@ Rang du morceau qui contient la réponse (`python src/search.py "…"`) :
 
 Seuls les 4 premiers morceaux sont envoyés au modèle. La question « temps partiel » passe ainsi de « Je ne trouve pas cette information » à « 2,5 jours ouvrables par mois de travail effectif [2] ».
 
+## Reranking
+
+Les 10 meilleurs candidats de la recherche hybride sont relus par un **cross-encoder**, qui lit la question et chaque morceau **ensemble** et leur donne une note de pertinence. Seuls les 4 mieux notés sont envoyés au LLM. Deux modèles multilingues comparés sur les 6 questions de contrôle :
+
+| | mMiniLM (`cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`) | **bge-reranker-v2-m3** |
+|---|---|---|
+| Temps par question (CPU, 10 candidats) | 1,2 s | 5,6 s |
+| « temps partiel » (2ᵉ après hybride) | 2ᵉ | **1ᵉʳ** |
+| « durée légale » (1ᵉʳ après hybride) | 2ᵉ (recule) | **1ᵉʳ** |
+| « patron / télétravailler » : top 4 | 4 morceaux Télétravail | 4 morceaux Télétravail |
+
+→ **bge-reranker-v2-m3** est retenu : il ne dégrade jamais le classement, pour environ 5 s de plus face à environ 35 s de génération. Le modèle est téléchargé une fois depuis Hugging Face (2,2 Go), puis chargé avec `local_files_only=True` : **aucune requête réseau** à l'utilisation.
+
 ## Feuille de route
 
 - [x] Installation : Ollama, modèles, environnement Python
@@ -119,7 +134,7 @@ Seuls les 4 premiers morceaux sont envoyés au modèle. La question « temps par
 - [x] Interface Streamlit (chat, streaming, sources cliquables)
 - [x] Questions de suite : reformulation avec l'historique de la conversation
 - [x] Recherche hybride (BM25 + vecteurs, fusion RRF)
-- [ ] Reranking (cross-encoder)
+- [x] Reranking (cross-encoder bge-reranker-v2-m3, 100 % hors ligne)
 - [ ] Agent LangGraph (reformulation, vérification, refus hors sujet)
 - [ ] Évaluation avec RAGAS
 - [ ] API FastAPI, Docker, CI GitHub Actions
