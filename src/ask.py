@@ -26,6 +26,39 @@ Contexte :
     ("human", "{question}"),
 ])
 
+CONDENSE_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """Tu es un outil de reformulation de questions, pas un assistant : tu ne réponds jamais aux questions.
+On te donne un extrait de conversation et une nouvelle question.
+Réécris la nouvelle question pour qu'elle soit compréhensible seule :
+- si elle fait référence à la conversation ("et si…", "et pour…", "dans ce cas"), ajoute le sujet manquant ;
+- sinon, recopie-la sans la modifier.
+N'ajoute aucun détail absent de la conversation (année, montant…).
+Renvoie uniquement la question réécrite, en texte brut."""),
+    ("human", "Conversation :\n{history}\n\nNouvelle question : {question}\n\nQuestion réécrite :"),
+])
+
+
+FOLLOW_UP_STARTS = ("et ", "et,", "dans ce cas", "alors", "mais ", "si ", "pour un", "pour une", "même ")
+
+
+def is_follow_up(question: str) -> bool:
+    """Une question de suite commence par « Et… », « Dans ce cas… »… ou est très courte."""
+    q = question.lower().strip()
+    return q.startswith(FOLLOW_UP_STARTS) or len(q.split()) <= 3
+
+
+def condense_question(question: str, history: list[tuple[str, str]], model: str = config.LLM_MODEL) -> str:
+    """Transforme une question de suite en question autonome, grâce à l'historique."""
+    if not history or not is_follow_up(question):
+        return question
+    history_text = "\n".join(f"{role} : {content}" for role, content in history)
+    llm = ChatOllama(model=model, temperature=0)
+    chain = CONDENSE_PROMPT | llm | StrOutputParser()
+    rewritten = chain.invoke({"history": history_text, "question": question}).replace("*", "").strip()
+    # Garde-fou : une « reformulation » trop longue est sûrement une réponse : on garde la question d'origine
+    return rewritten if len(rewritten) <= 200 else question
+
+
 
 
 def format_context(chunks) -> str:

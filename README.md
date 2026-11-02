@@ -101,7 +101,7 @@ Comparaison sur les mêmes questions, avec la même recherche, le même prompt e
 - [x] Chaîne RAG avec citations des sources
 - [x] Amélioration du prompt et choix du modèle par comparaison
 - [x] Interface Streamlit (chat, streaming, sources cliquables)
-- [ ] Questions de suite : reformulation avec l'historique de la conversation
+- [x] Questions de suite : reformulation avec l'historique de la conversation
 - [ ] Recherche hybride (BM25 + vecteurs) et reranking
 - [ ] Agent LangGraph (reformulation, vérification, refus hors sujet)
 - [ ] Évaluation avec RAGAS
