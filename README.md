@@ -15,8 +15,8 @@ Tout tourne **en local** avec des modèles open source (Ollama) : aucune donnée
  (service-public.fr,      ┌──────────────────────────────┐        ┌───────────────────────────────┐
   Code du travail, PDF)──▶│ charger → découper en        │        │ question                      │
                           │ morceaux → embeddings (bge-m3)│        │   → embedding (bge-m3)        │
-                          │ → base vectorielle Chroma ────┼──────▶ │   → recherche des morceaux    │
-                          └──────────────────────────────┘        │     les plus proches          │
+                          │ → base vectorielle Chroma ────┼──────▶ │   → recherche hybride :       │
+                          └──────────────────────────────┘        │     vecteurs + BM25, fusion   │
                                                                   │   → prompt + morceaux         │
                                                                   │   → Mistral (Ollama)          │
                                                                   │   → réponse + sources [1][2]  │
@@ -31,6 +31,7 @@ Tout tourne **en local** avec des modèles open source (Ollama) : aucune donnée
 | Embeddings | **bge-m3** (multilingue, via Ollama) |
 | Orchestration RAG | **LangChain** |
 | Base vectorielle | **ChromaDB** |
+| Recherche | **Hybride** : vecteurs (sens) + **BM25** (mots exacts, `rank_bm25`), fusion par rang réciproque (RRF) |
 | Sources | Fiches officielles [service-public.fr](https://www.service-public.fr) (droit du travail, secteur privé) |
 
 ## Installation
@@ -59,7 +60,7 @@ streamlit run src/app.py            # http://localhost:8501
 
 # 2b. Ou en ligne de commande
 python src/ask.py "Combien de jours de congés payés a un salarié ?"
-python src/search.py "télétravail"  # recherche seule, sans LLM
+python src/search.py "télétravail"  # recherche seule, sans LLM : classements vecteurs, BM25 et hybride
 ```
 
 ## Structure du projet
@@ -71,7 +72,7 @@ python src/search.py "télétravail"  # recherche seule, sans LLM
 ├── src/
 │   ├── config.py       # paramètres : modèles, taille des morceaux, nombre de résultats
 │   ├── ingest.py       # chargement, nettoyage, découpage et indexation dans Chroma
-│   ├── search.py       # recherche sémantique (sans LLM)
+│   ├── search.py       # recherche hybride : vecteurs + BM25, fusion RRF (sans LLM)
 │   ├── app.py          # interface web de chat (Streamlit, streaming, sources)
 │   ├── ask.py          # assistant : recherche + LLM + réponse avec sources
 │   └── compare.py      # comparaison de modèles sur les mêmes questions
@@ -92,6 +93,21 @@ Comparaison sur les mêmes questions, avec la même recherche, le même prompt e
 
 → **Ministral 3 8B** est retenu.
 
+## Recherche hybride
+
+La recherche vectorielle compare le **sens global** : un détail précis de la question (« temps partiel ») peut s'y noyer. BM25 compte les **mots exacts**, mais ne reconnaît pas les synonymes (« patron » au lieu d'« employeur »). Les deux classements (10 candidats chacun) sont fusionnés par **Reciprocal Rank Fusion** : chaque morceau gagne `1 / (60 + rang)` dans chaque liste.
+
+Rang du morceau qui contient la réponse (`python src/search.py "…"`) :
+
+| Question | Vecteurs | BM25 | Hybride |
+|---|---|---|---|
+| Congés payés calculés pour un salarié **à temps partiel** ? | 7ᵉ ❌ | 3ᵉ | **2ᵉ** ✅ |
+| Mon **patron** peut-il m'obliger à **télétravailler** ? | 2ᵉ | absent ❌ | 3ᵉ ✅ |
+| Combien de jours de congés payés ? | 1ᵉʳ | 3ᵉ | 1ᵉʳ ✅ |
+| Comment sont majorées les heures supplémentaires ? | 2ᵉ | 1ᵉʳ | 1ᵉʳ ✅ |
+
+Seuls les 4 premiers morceaux sont envoyés au modèle. La question « temps partiel » passe ainsi de « Je ne trouve pas cette information » à « 2,5 jours ouvrables par mois de travail effectif [2] ».
+
 ## Feuille de route
 
 - [x] Installation : Ollama, modèles, environnement Python
@@ -102,7 +118,8 @@ Comparaison sur les mêmes questions, avec la même recherche, le même prompt e
 - [x] Amélioration du prompt et choix du modèle par comparaison
 - [x] Interface Streamlit (chat, streaming, sources cliquables)
 - [x] Questions de suite : reformulation avec l'historique de la conversation
-- [ ] Recherche hybride (BM25 + vecteurs) et reranking
+- [x] Recherche hybride (BM25 + vecteurs, fusion RRF)
+- [ ] Reranking (cross-encoder)
 - [ ] Agent LangGraph (reformulation, vérification, refus hors sujet)
 - [ ] Évaluation avec RAGAS
 - [ ] API FastAPI, Docker, CI GitHub Actions

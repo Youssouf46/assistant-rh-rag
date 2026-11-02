@@ -6,3 +6,4 @@ langchain-text-splitters
 beautifulsoup4
 pypdf
 streamlit
+rank_bm25

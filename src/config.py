@@ -17,3 +17,4 @@ CHUNK_OVERLAP = 150       # chevauchement pour ne pas couper une idée en deux
 
 # Recherche
 TOP_K = 4                 # nombre de morceaux envoyés au modèle
+CANDIDATES = 10           # morceaux pris dans chaque recherche avant la fusion
