@@ -33,14 +33,20 @@ def format_context(chunks) -> str:
     return "\n\n".join(f"[{i}] {chunk.page_content}" for i, chunk in enumerate(chunks, start=1))
 
 
-def ask(question: str, model: str = config.LLM_MODEL):
-    # R = Retrieval : les morceaux les plus proches de la question
-    chunks = get_store().similarity_search(question, k=config.TOP_K)
+def retrieve(question: str):
+    """R = Retrieval : les morceaux les plus proches de la question."""
+    return get_store().similarity_search(question, k=config.TOP_K)
 
-    # A + G = Augmented Generation : le prompt enrichi, puis la réponse du modèle
+
+def build_chain(model: str = config.LLM_MODEL):
+    """A + G : le prompt enrichi, puis le modèle, puis l'extraction du texte."""
     llm = ChatOllama(model=model, temperature=0)
-    chain = PROMPT | llm | StrOutputParser()
-    answer = chain.invoke({"context": format_context(chunks), "question": question})
+    return PROMPT | llm | StrOutputParser()
+
+
+def ask(question: str, model: str = config.LLM_MODEL):
+    chunks = retrieve(question)
+    answer = build_chain(model).invoke({"context": format_context(chunks), "question": question})
     return answer, chunks
 
 

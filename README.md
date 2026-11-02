@@ -48,6 +48,20 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+## Utilisation
+
+```bash
+# 1. Construire l'index (une fois, environ 1 min 30 sur CPU)
+python src/ingest.py
+
+# 2a. Interface web de chat
+streamlit run src/app.py            # http://localhost:8501
+
+# 2b. Ou en ligne de commande
+python src/ask.py "Combien de jours de congés payés a un salarié ?"
+python src/search.py "télétravail"  # recherche seule, sans LLM
+```
+
 ## Structure du projet
 
 ```
@@ -58,6 +72,7 @@ pip install -r requirements.txt
 │   ├── config.py       # paramètres : modèles, taille des morceaux, nombre de résultats
 │   ├── ingest.py       # chargement, nettoyage, découpage et indexation dans Chroma
 │   ├── search.py       # recherche sémantique (sans LLM)
+│   ├── app.py          # interface web de chat (Streamlit, streaming, sources)
 │   ├── ask.py          # assistant : recherche + LLM + réponse avec sources
 │   └── compare.py      # comparaison de modèles sur les mêmes questions
 ├── requirements.txt
@@ -85,7 +100,8 @@ Comparaison sur les mêmes questions, avec la même recherche, le même prompt e
 - [x] Embeddings et base vectorielle Chroma (recherche sémantique)
 - [x] Chaîne RAG avec citations des sources
 - [x] Amélioration du prompt et choix du modèle par comparaison
-- [ ] Interface Streamlit
+- [x] Interface Streamlit (chat, streaming, sources cliquables)
+- [ ] Questions de suite : reformulation avec l'historique de la conversation
 - [ ] Recherche hybride (BM25 + vecteurs) et reranking
 - [ ] Agent LangGraph (reformulation, vérification, refus hors sujet)
 - [ ] Évaluation avec RAGAS

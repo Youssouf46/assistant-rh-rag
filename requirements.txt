@@ -5,3 +5,4 @@ langchain-chroma
 langchain-text-splitters
 beautifulsoup4
 pypdf
+streamlit
