@@ -4,6 +4,10 @@ Assistant qui répond aux questions des salariés et des services RH (congés pa
 
 Tout tourne **en local** avec des modèles open source (Ollama) : aucune donnée ne quitte la machine, ce qui répond aux contraintes du **RGPD** et de la souveraineté des données.
 
+![Interface de l'assistant : réponse sourcée et vérifiée](docs/interface.png)
+
+*Réponse en mode vérifié : chaque phrase citée a été vérifiée contre sa source officielle.*
+
 > 🚧 Projet en cours de construction. Ce README est complété à chaque étape.
 
 ---
@@ -62,6 +66,7 @@ streamlit run src/app.py            # http://localhost:8501
 
 # 2b. Ou en ligne de commande
 python src/agent.py "Combien de jours de congés payés a un salarié ?"   # agent LangGraph
+python src/agent.py --verifier "Comment sont majorées les heures supplémentaires ?"   # avec vérification
 python src/agent.py --graph         # schéma du graphe (Mermaid)
 python src/ask.py "Combien de jours de congés payés a un salarié ?"     # chaîne simple, sans aiguillage
 python src/search.py "télétravail"  # recherche seule, sans LLM : vecteurs, BM25, hybride, hybride + reranking
@@ -77,10 +82,12 @@ python src/search.py "télétravail"  # recherche seule, sans LLM : vecteurs, BM
 │   ├── config.py       # paramètres : modèles, taille des morceaux, nombre de résultats
 │   ├── ingest.py       # chargement, nettoyage, découpage et indexation dans Chroma
 │   ├── search.py       # recherche hybride (vecteurs + BM25, fusion RRF) puis reranking (sans LLM)
-│   ├── agent.py        # agent LangGraph : reformuler → chercher → répondre ou refuser
+│   ├── agent.py        # agent LangGraph : reformuler → chercher → répondre ou refuser → vérifier
+│   ├── verify.py       # vérification de chaque phrase citée contre sa source
 │   ├── app.py          # interface web de chat (Streamlit, streaming, sources notées)
 │   ├── ask.py          # briques : prompts, reformulation, recherche, chaîne de réponse
 │   └── compare.py      # comparaison de modèles sur les mêmes questions
+├── docs/               # captures d'écran du README
 ├── requirements.txt
 └── README.md
 ```
@@ -137,13 +144,16 @@ graph TD;
 	search(search)
 	generate(generate)
 	refuse(refuse)
+	verify(verify)
 	__end__([<p>__end__</p>]):::last
 	__start__ --> condense;
 	condense --> search;
+	generate -.-> __end__;
+	generate -.-> verify;
 	search -.-> generate;
 	search -.-> refuse;
-	generate --> __end__;
 	refuse --> __end__;
+	verify --> __end__;
 	classDef default fill:#f2f0ff,line-height:1.2
 	classDef first fill-opacity:0
 	classDef last fill:#bfb6fc
@@ -153,6 +163,21 @@ graph TD;
 - **search** : recherche hybride + reranking ; chaque morceau reçoit une note de pertinence de 0 à 1.
 - **Aiguillage** : si la meilleure note est sous `RELEVANCE_THRESHOLD` (0,05), le graphe va vers **refuse** sans appeler le LLM. Mesuré sur 22 questions : hors sujet ≤ 0,02, dans les fiches ≥ 0,83.
 - **generate** : le LLM rédige la réponse sourcée, diffusée mot par mot dans Streamlit (`stream_mode=["updates", "messages"]`).
+- **verify** (interrupteur « 🔍 Mode vérifié ») : le code découpe la réponse en phrases citées, et le LLM vérifie chacune contre le passage qu'elle cite (sortie structurée Pydantic). Les phrases non justifiées sont signalées ⚠️.
+
+### Vérification des réponses
+
+| Méthode testée | Résultat |
+|---|---|
+| Le LLM relit toute la réponse avec les 4 passages | 3/5 verdicts justes : trop difficile pour un modèle 8B |
+| Phrase par phrase, prompt **souple** | 8/9, mais laisse passer 1 des 2 vraies erreurs |
+| Phrase par phrase, prompt **strict** (retenu) | 8/9, **détecte les 2 vraies erreurs** (dont « proportionnel au temps travaillé », absent des sources), 1 fausse alerte |
+
+Coût : ≈ 16 s par phrase sur CPU, d'où une vérification **à la demande**. En droit, une fausse alerte (« à vérifier ») coûte moins cher qu'une erreur non détectée.
+
+![Vérification : deux phrases signalées](docs/verification.png)
+
+*Exemple réel : la phrase « le droit est proportionnel au temps travaillé » est absente de la source (qui dit l'inverse : 2,5 jours par mois, à temps plein comme à temps partiel) et elle est signalée. La première alerte (« comme le salarié à temps plein ») est une fausse alerte, conséquence assumée du prompt strict.*
 
 ## Feuille de route
 
@@ -167,7 +192,7 @@ graph TD;
 - [x] Recherche hybride (BM25 + vecteurs, fusion RRF)
 - [x] Reranking (cross-encoder bge-reranker-v2-m3, 100 % hors ligne)
 - [x] Agent LangGraph : reformulation, recherche, refus hors sujet par seuil de pertinence
-- [ ] Vérification de la réponse phrase par phrase (boucle LangGraph)
+- [x] Mode vérifié : vérification de chaque phrase citée contre sa source (nœud LangGraph à la demande)
 - [ ] Évaluation avec RAGAS
 - [ ] API FastAPI, Docker, CI GitHub Actions
 

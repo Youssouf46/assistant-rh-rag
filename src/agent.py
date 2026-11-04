@@ -1,4 +1,4 @@
-"""Agent LangGraph : le pipeline RAG sous forme de graphe (reformuler → chercher → répondre ou refuser).
+"""Agent LangGraph : reformuler → chercher → répondre ou refuser → (si demandé) vérifier chaque phrase.
 """
 import sys
 import time
@@ -9,6 +9,7 @@ from langgraph.graph import END, START, StateGraph
 
 import config
 from ask import build_chain, condense_question, format_context, retrieve
+from verify import check_claims, split_claims
 
 NOT_FOUND = "Je ne trouve pas cette information dans mes sources."
 
@@ -20,6 +21,8 @@ class State(TypedDict):
     search_question: str               # question autonome, utilisée pour chercher et répondre
     chunks: list[Document]             # morceaux retenus après reranking
     answer: str                        # réponse finale
+    verify: bool                       # l'utilisateur a-t-il demandé la vérification ?
+    checks: list[dict]                 # résultat de la vérification, phrase par phrase
 
 
 # --- Les nœuds : une fonction = une étape ---
@@ -41,6 +44,10 @@ def refuse(state: State) -> dict:
     return {"answer": NOT_FOUND, "chunks": []}
 
 
+def verify(state: State) -> dict:
+    return {"checks": check_claims(split_claims(state["answer"]), state["chunks"])}
+
+
 # --- L'aiguillage : le code choisit le nœud suivant ---
 
 def route_after_search(state: State) -> str:
@@ -49,33 +56,43 @@ def route_after_search(state: State) -> str:
     return "generate" if best_score >= config.RELEVANCE_THRESHOLD else "refuse"
 
 
+def route_after_generate(state: State) -> str:
+    """Vérification seulement si l'utilisateur l'a demandée (elle coûte 1 à 2 min sur CPU)."""
+    return "verify" if state.get("verify") else END
+
+
 def build_agent():
     graph = StateGraph(State)
     graph.add_node("condense", condense)
     graph.add_node("search", search)
     graph.add_node("generate", generate)
     graph.add_node("refuse", refuse)
+    graph.add_node("verify", verify)
 
     graph.add_edge(START, "condense")
     graph.add_edge("condense", "search")
     graph.add_conditional_edges("search", route_after_search, ["generate", "refuse"])
-    graph.add_edge("generate", END)
+    graph.add_conditional_edges("generate", route_after_generate, ["verify", END])
     graph.add_edge("refuse", END)
+    graph.add_edge("verify", END)
     return graph.compile()
 
 
 agent = build_agent()
 
 
-def stream_agent(question: str, history: list[tuple[str, str]], state: dict):
-    """Lance l'agent et renvoie la réponse mot par mot ; `state` se remplit au passage (question comprise, sources)."""
-    inputs = {"question": question, "history": history}
+def stream_agent(question: str, history: list[tuple[str, str]], state: dict, verify_mode: bool = False):
+    """Lance l'agent et renvoie la réponse mot par mot, puis None quand elle est finie (la vérification
+    éventuelle continue ensuite) ; `state` se remplit au passage (question comprise, sources, vérification)."""
+    inputs = {"question": question, "history": history, "verify": verify_mode}
     for mode, data in agent.stream(inputs, stream_mode=["updates", "messages"]):
         if mode == "updates":                   # un nœud vient de finir : on garde ce qu'il a écrit
             for node_output in data.values():
                 state.update(node_output)
             if "refuse" in data:
                 yield data["refuse"]["answer"]
+            if "generate" in data or "refuse" in data:
+                yield None                      # signal : la réponse est complète
         else:                                   # un mot produit par un LLM
             token, metadata = data
             if metadata["langgraph_node"] == "generate":
@@ -87,12 +104,17 @@ if __name__ == "__main__":
         print(agent.get_graph().draw_mermaid())
         sys.exit()
 
-    question = " ".join(sys.argv[1:]) or input("Votre question : ")
+    args = sys.argv[1:]
+    verify_mode = "--verifier" in args
+    question = " ".join(a for a in args if a != "--verifier") or input("Votre question : ")
     start = time.time()
-    result = agent.invoke({"question": question, "history": []})
+    result = agent.invoke({"question": question, "history": [], "verify": verify_mode})
 
     print(f"\n{result['answer']}\n")
     print("Sources :")
     for i, chunk in enumerate(result["chunks"], start=1):
         print(f"  [{i}] {chunk.metadata['title']} (pertinence {chunk.metadata['score']:.2f})")
+    for check in result.get("checks", []):
+        mark = "✅" if check["justifiee"] else "⚠️"
+        print(f"\n{mark} {check['phrase']} {check['sources']}\n   {check['raison']}")
     print(f"\n({time.time() - start:.0f} s)")
