@@ -20,3 +20,4 @@ TOP_K = 4                 # nombre de morceaux envoyés au modèle
 CANDIDATES = 10           # morceaux pris dans chaque recherche avant la fusion
 RERANK_MODEL = "BAAI/bge-reranker-v2-m3"   # cross-encoder multilingue (plus rapide : "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1")
 RERANK_CANDIDATES = 10    # morceaux issus de la fusion, relus par le reranker
+RELEVANCE_THRESHOLD = 0.05   # note minimale du meilleur morceau (reranker) pour répondre ; sinon refus sans appeler le LLM

@@ -1,9 +1,11 @@
 """Interface web de l'assistant RH (chat).
 """
+from itertools import chain
+
 import streamlit as st
 
 import config
-from ask import build_chain, condense_question, format_context, retrieve
+from agent import stream_agent
 
 st.set_page_config(page_title="Assistant RH souverain", page_icon="⚖️")
 st.title("⚖️ Assistant RH souverain")
@@ -14,7 +16,7 @@ def show_sources(chunks):
     """Affiche les sources dans un bloc dépliable, avec un extrait de chaque morceau."""
     with st.expander("📚 Sources"):
         for i, chunk in enumerate(chunks, start=1):
-            st.markdown(f"**[{i}]** [{chunk.metadata['title']}]({chunk.metadata['source']})")
+            st.markdown(f"**[{i}]** [{chunk.metadata['title']}]({chunk.metadata['source']}) · pertinence {chunk.metadata['score']:.2f}")
             st.caption(chunk.page_content[:300] + "…")
 
 
@@ -28,7 +30,7 @@ for message in st.session_state.messages:
         if message.get("search_question"):
             st.caption(f"🔎 Question comprise : {message['search_question']}")
         st.markdown(message["content"])
-        if "chunks" in message:
+        if message.get("chunks"):
             show_sources(message["chunks"])
 
 
@@ -41,20 +43,20 @@ if question := st.chat_input("Posez votre question sur le droit du travail…"):
         st.markdown(question)
 
     with st.chat_message("assistant"):
+        state = {}
+        tokens = stream_agent(question, history, state)
         with st.spinner("Recherche dans les sources…"):
-            search_question = condense_question(question, history)
-            chunks = retrieve(search_question)
+            first_token = next(tokens)   # l'agent reformule et cherche, jusqu'au premier mot de la réponse
+        search_question = state["search_question"]
         if search_question != question:
             st.caption(f"🔎 Question comprise : {search_question}")
-        stream = build_chain().stream({"context": format_context(chunks), "question": search_question})
-        answer = st.write_stream(stream)
-        show_sources(chunks)
+        answer = st.write_stream(chain([first_token], tokens))
+        if state["chunks"]:
+            show_sources(state["chunks"])
 
     st.session_state.messages.append({
         "role": "assistant",
         "content": answer,
-        "chunks": chunks,
+        "chunks": state["chunks"],
         "search_question": search_question if search_question != question else None,
     })
-
-

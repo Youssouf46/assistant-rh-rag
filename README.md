@@ -30,7 +30,7 @@ Tout tourne **en local** avec des modèles open source (Ollama) : aucune donnée
 |---|---|
 | LLM local | [Ollama](https://ollama.com) + **Ministral 3 8B** (Mistral AI) |
 | Embeddings | **bge-m3** (multilingue, via Ollama) |
-| Orchestration RAG | **LangChain** |
+| Orchestration RAG | **LangChain** (briques, LCEL) et **LangGraph** (graphe de l'agent) |
 | Base vectorielle | **ChromaDB** |
 | Recherche | **Hybride** : vecteurs (sens) + **BM25** (mots exacts, `rank_bm25`), fusion par rang réciproque (RRF) |
 | Reranking | **bge-reranker-v2-m3** (cross-encoder multilingue, `sentence-transformers`, chargé hors ligne) |
@@ -61,7 +61,9 @@ python src/ingest.py
 streamlit run src/app.py            # http://localhost:8501
 
 # 2b. Ou en ligne de commande
-python src/ask.py "Combien de jours de congés payés a un salarié ?"
+python src/agent.py "Combien de jours de congés payés a un salarié ?"   # agent LangGraph
+python src/agent.py --graph         # schéma du graphe (Mermaid)
+python src/ask.py "Combien de jours de congés payés a un salarié ?"     # chaîne simple, sans aiguillage
 python src/search.py "télétravail"  # recherche seule, sans LLM : vecteurs, BM25, hybride, hybride + reranking
 ```
 
@@ -75,8 +77,9 @@ python src/search.py "télétravail"  # recherche seule, sans LLM : vecteurs, BM
 │   ├── config.py       # paramètres : modèles, taille des morceaux, nombre de résultats
 │   ├── ingest.py       # chargement, nettoyage, découpage et indexation dans Chroma
 │   ├── search.py       # recherche hybride (vecteurs + BM25, fusion RRF) puis reranking (sans LLM)
-│   ├── app.py          # interface web de chat (Streamlit, streaming, sources)
-│   ├── ask.py          # assistant : recherche + LLM + réponse avec sources
+│   ├── agent.py        # agent LangGraph : reformuler → chercher → répondre ou refuser
+│   ├── app.py          # interface web de chat (Streamlit, streaming, sources notées)
+│   ├── ask.py          # briques : prompts, reformulation, recherche, chaîne de réponse
 │   └── compare.py      # comparaison de modèles sur les mêmes questions
 ├── requirements.txt
 └── README.md
@@ -123,6 +126,34 @@ Les 10 meilleurs candidats de la recherche hybride sont relus par un **cross-enc
 
 → **bge-reranker-v2-m3** est retenu : il ne dégrade jamais le classement, pour environ 5 s de plus face à environ 35 s de génération. Le modèle est téléchargé une fois depuis Hugging Face (2,2 Go), puis chargé avec `local_files_only=True` : **aucune requête réseau** à l'utilisation.
 
+## Agent LangGraph
+
+Le traitement d'une question est un graphe (`python src/agent.py --graph`) :
+
+```mermaid
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	condense(condense)
+	search(search)
+	generate(generate)
+	refuse(refuse)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> condense;
+	condense --> search;
+	search -.-> generate;
+	search -.-> refuse;
+	generate --> __end__;
+	refuse --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
+```
+
+- **condense** : reformule les questions de suite (« Et si je suis à temps partiel ? ») avec l'historique ; la décision de reformuler est prise par une règle dans le code.
+- **search** : recherche hybride + reranking ; chaque morceau reçoit une note de pertinence de 0 à 1.
+- **Aiguillage** : si la meilleure note est sous `RELEVANCE_THRESHOLD` (0,05), le graphe va vers **refuse** sans appeler le LLM. Mesuré sur 22 questions : hors sujet ≤ 0,02, dans les fiches ≥ 0,83.
+- **generate** : le LLM rédige la réponse sourcée, diffusée mot par mot dans Streamlit (`stream_mode=["updates", "messages"]`).
+
 ## Feuille de route
 
 - [x] Installation : Ollama, modèles, environnement Python
@@ -135,7 +166,8 @@ Les 10 meilleurs candidats de la recherche hybride sont relus par un **cross-enc
 - [x] Questions de suite : reformulation avec l'historique de la conversation
 - [x] Recherche hybride (BM25 + vecteurs, fusion RRF)
 - [x] Reranking (cross-encoder bge-reranker-v2-m3, 100 % hors ligne)
-- [ ] Agent LangGraph (reformulation, vérification, refus hors sujet)
+- [x] Agent LangGraph : reformulation, recherche, refus hors sujet par seuil de pertinence
+- [ ] Vérification de la réponse phrase par phrase (boucle LangGraph)
 - [ ] Évaluation avec RAGAS
 - [ ] API FastAPI, Docker, CI GitHub Actions
 

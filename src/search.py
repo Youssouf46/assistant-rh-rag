@@ -79,10 +79,12 @@ def get_reranker() -> CrossEncoder:
 
 
 def rerank(question: str, chunks: list[Document], k: int) -> list[Document]:
-    """Le cross-encoder lit la question avec chaque morceau et note leur pertinence."""
+    """Le cross-encoder lit la question avec chaque morceau et note leur pertinence (de 0 à 1)."""
     scores = get_reranker().predict([(question, chunk.page_content) for chunk in chunks])
-    best = sorted(range(len(chunks)), key=lambda i: scores[i], reverse=True)[:k]
-    return [chunks[i] for i in best]
+    for chunk, score in zip(chunks, scores):
+        chunk.metadata["score"] = float(score)
+    return sorted(chunks, key=lambda chunk: chunk.metadata["score"], reverse=True)[:k]
+
 
 
 def search_and_rerank(question: str, k: int = config.TOP_K) -> list[Document]:

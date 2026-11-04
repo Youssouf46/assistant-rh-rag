@@ -8,3 +8,4 @@ pypdf
 streamlit
 rank_bm25
 sentence-transformers
+langgraph
