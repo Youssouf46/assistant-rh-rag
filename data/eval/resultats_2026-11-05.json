@@ -1,0 +1,303 @@
+{
+  "date": "2026-11-05",
+  "modele": "ministral-3:8b",
+  "reranker": "BAAI/bge-reranker-v2-m3",
+  "recherche": {
+    "Vecteurs": {
+      "rappel@4": 0.875,
+      "mrr": 0.74,
+      "ratees": [
+        1,
+        2,
+        5
+      ]
+    },
+    "BM25": {
+      "rappel@4": 0.958,
+      "mrr": 0.826,
+      "ratees": [
+        14
+      ]
+    },
+    "Hybride": {
+      "rappel@4": 0.958,
+      "mrr": 0.826,
+      "ratees": [
+        24
+      ]
+    },
+    "Hybride + reranking": {
+      "rappel@4": 1.0,
+      "mrr": 0.979,
+      "ratees": []
+    }
+  },
+  "refus": {
+    "exactitude": 1.0,
+    "erreurs": []
+  },
+  "reponses": {
+    "moyennes": {
+      "exactitude": 1.0,
+      "fidelite": 0.828,
+      "secondes_par_question": 56
+    },
+    "details": [
+      {
+        "question": "Combien de jours de congés payés un salarié acquiert-il par mois ?",
+        "exactitude": 1.0,
+        "fidelite": 0.5,
+        "secondes": 72,
+        "reponse": "2,5 jours ouvrables.\n\n**Règle générale** :\nLe salarié acquiert **2,5 jours ouvrables de congés payés par mois de travail effectif** chez le même employeur [3].\n\n**Exceptions** :\n- Aucun passage ne mentionne d’exception à ce droit mensuel standard pour les salariés non-apprentis. Les règles spécifiques (comme les 5 semaines pour les apprentis) concernent uniquement leur durée totale annuelle [2].",
+        "phrases_douteuses": [
+          "Exceptions : Aucun passage ne mentionne d’exception à ce droit mensuel standard pour les salariés non-apprentis. Les règles spécifiques (comme les 5 semaines pour les apprentis) concernent uniquement leur durée totale annuelle"
+        ]
+      },
+      {
+        "question": "Comment les jours de congés payés sont-ils calculés pour un salarié à temps partiel ?",
+        "exactitude": 1.0,
+        "fidelite": 0.6666666666666666,
+        "secondes": 69,
+        "reponse": "**2,5 jours ouvrables par mois de travail effectif** [1].\n\n**Règle générale** :\nLe salarié à temps partiel a droit à **2,5 jours ouvrables de congés payés par mois de travail effectif** chez le même employeur, comme le salarié à temps plein [1].\n\n**Exception** :\nAucune exception n'est mentionnée dans les passages pour le calcul spécifique aux temps partiels, mais le droit est proportionnel au temps travaillé [1].",
+        "phrases_douteuses": [
+          "Aucune exception n'est mentionnée dans les passages pour le calcul spécifique aux temps partiels, mais le droit est proportionnel au temps travaillé"
+        ]
+      },
+      {
+        "question": "Combien de congés payés a un apprenti ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 59,
+        "reponse": "5 semaines de congés payés par an [1].\n\n**Règle générale** :\nUn apprenti a droit à **5 semaines de congés payés par an** [1].\n\n**Exception** :\nL'employeur peut décider de la période de prise des congés de l'apprenti [1].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Combien de jours de congés consécutifs un salarié peut-il poser au maximum ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 39,
+        "reponse": "24 jours ouvrables [1].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "L'employeur peut-il refuser les dates de congés demandées par le salarié ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 56,
+        "reponse": "**Oui** [1].\n\n**Règle générale** : L'employeur peut refuser les dates de congés souhaitées par le salarié [1].\n\n**Exceptions** :\n- L'employeur peut imposer au salarié de prendre des jours de congés en cas de fermeture temporaire de l'entreprise [1].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Comment sont majorées les heures supplémentaires ?",
+        "exactitude": 1.0,
+        "fidelite": 0.5,
+        "secondes": 123,
+        "reponse": "**Réponse directe :**\nOui, les heures supplémentaires sont majorées, sauf exceptions.\n\n**Règle générale :**\nLes heures supplémentaires sont majorées de **25 %** pour les 8 premières heures supplémentaires (de la 36ᵉ à la 43ᵉ heure) et de **50 %** pour les heures suivantes (à partir de la 44ᵉ heure) **en l'absence de dispositions conventionnelles** [1].\nEn présence de **dispositions conventionnelles**, les taux de majoration sont fixés par la convention collective ou l'accord collectif, avec un minimum de **10 %** par taux [2].\n\n**Exceptions :**\n- Si les heures sont **non majorées** (payées au taux normal), cela se produit uniquement lorsque les heures sont **effectuées au-delà de la 35ᵉ heure mais sans dépasser la durée légale hebdomadaire** (ex. : 39 heures sur une semaine de 35 heures légales, avec 4 heures non majorées) [3].\n- Les heures **complémentaires** (et non supplémentaires) sont majorées de **10 %** (ou selon les dispositions conventionnelles) mais ne sont pas considérées comme des heures supplémentaires [4].",
+        "phrases_douteuses": [
+          "Si les heures sont non majorées (payées au taux normal), cela se produit uniquement lorsque les heures sont effectuées au-delà de la 35ᵉ heure mais sans dépasser la durée légale hebdomadaire (ex. : 39 heures sur une semaine de 35 heures légales, avec 4 heures non majorées)",
+          "Les heures complémentaires (et non supplémentaires) sont majorées de 10 % (ou selon les dispositions conventionnelles) mais ne sont pas considérées comme des heures supplémentaires"
+        ]
+      },
+      {
+        "question": "Quel est le nombre maximal d'heures supplémentaires par an ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 60,
+        "reponse": "**220 heures** [1].\n\n**Règle générale** :\nLe nombre maximal d'heures supplémentaires par an est de **220 heures** si aucun accord (convention collective, accord collectif d'entreprise ou accord de branche étendu) ne fixe un contingent différent [1].\n\n**Exception** :\nSi un accord (convention collective, accord collectif d'entreprise ou accord de branche étendu) existe, le nombre d'heures supplémentaires peut être défini par cet accord [1].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Le salarié qui travaille le 1er mai est-il payé double ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 43,
+        "reponse": "Oui.\n\n**Règle générale** : Le salarié qui travaille le 1er mai bénéficie du doublement de sa rémunération [1].\n\n**Exception** : Aucune exception n'est mentionnée dans les passages.",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Un jour férié chômé est-il payé ?",
+        "exactitude": 1.0,
+        "fidelite": 0.2,
+        "secondes": 109,
+        "reponse": "**Oui**, sauf exceptions.\n\n**Règle générale** :\nLe chômage des jours fériés ne peut entraîner aucune perte de salaire pour le salarié totalisant au moins 3 mois d'ancienneté dans l'entreprise [1].\n\n**Exceptions** :\n- Salarié travaillant à domicile [1].\n- Salarié intermittent [1].\n- Salarié temporaire (sauf si le jour férié est compris dans sa mission) [1].\n- Salarié saisonnier sans 3 mois d'ancienneté cumulée [1].",
+        "phrases_douteuses": [
+          "Exceptions : Salarié travaillant à domicile",
+          "Exceptions : Salarié intermittent",
+          "Exceptions : Salarié temporaire (sauf si le jour férié est compris dans sa mission)",
+          "Exceptions : Salarié saisonnier sans 3 mois d'ancienneté cumulée"
+        ]
+      },
+      {
+        "question": "Quelle est la durée légale du travail ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 86,
+        "reponse": "**35 heures par semaine** [1].\n\n**Règle générale** :\nLa durée légale de temps de travail pour un salarié du secteur privé à temps plein est fixée à **35 heures par semaine** [1].\n\n**Exceptions** :\n- Une convention collective peut prévoir une durée de travail hebdomadaire **supérieure ou inférieure** à 35 heures [2].\n- Les **cadres dirigeants** ne sont pas soumis à une durée légale de travail minimale ou maximale [2].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Quelle est la durée maximale de travail par jour ?",
+        "exactitude": 1.0,
+        "fidelite": 0.5,
+        "secondes": 84,
+        "reponse": "**10 heures** (sauf exceptions).\n\n**Règle générale** :\nLa durée maximale quotidienne de travail effectif ne doit pas dépasser **10 heures par jour** [1].\n\n**Exceptions** :\n- **12 heures** par jour si :\n  - L’employeur sollicite l’accord de l’inspecteur du travail pour un surcroît temporaire d’activité ou une urgence [1].\n  - Une **convention collective** le prévoit pour des motifs liés à l’organisation de l’entreprise ou une activité accrue [1].\n- **Pas de limite explicite** si le salarié est un **cadre dirigeant** (car exempté de toute durée maximale) [4].",
+        "phrases_douteuses": [
+          "12 heures par jour si : L’employeur sollicite l’accord de l’inspecteur du travail pour un surcroît temporaire d’activité ou une urgence",
+          "Exceptions : Pas de limite explicite si le salarié est un cadre dirigeant (car exempté de toute durée maximale)"
+        ]
+      },
+      {
+        "question": "Quelle est la durée maximale de travail par semaine ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 80,
+        "reponse": "**48 heures** sur une même semaine.\n\n**Règle générale** :\nLa durée maximale de travail hebdomadaire ne doit pas dépasser **48 heures** sur une même semaine [1].\n\n**Exceptions** :\n1. La durée peut être portée à **60 heures maximum** en cas de circonstances exceptionnelles, avec accord de l'inspection du travail [1].\n2. La durée peut être calculée en moyenne sur **12 semaines consécutives** (limite de **44 heures** en moyenne) [1].\n3. Une convention collective peut prévoir une durée différente [2].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "À partir de combien d'heures de travail un salarié a-t-il droit à une pause ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 49,
+        "reponse": "Un salarié a droit à une pause **à partir de 6 heures de travail consécutives**.\n\n**Règle générale** :\nUn temps de pause d'au moins 20 minutes consécutives doit être accordé dès que le salarié a travaillé **6 heures consécutives** [1].\n\n**Exceptions** :\nAucune exception n'est mentionnée dans les passages pour cette règle spécifique.",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Mon employeur peut-il m'imposer le télétravail ?",
+        "exactitude": 1.0,
+        "fidelite": 0.5,
+        "secondes": 66,
+        "reponse": "**Non**, sauf exceptions.\n\n**Règle générale** : L'employeur et le salarié doivent convenir du télétravail par accord écrit (clause contractuelle ou avenant) [1].\n\n**Exceptions** :\n- En cas de **circonstances exceptionnelles** (menace d'épidémie) ou de **force majeure**, le télétravail peut être **imposé sans accord** [1, 3].",
+        "phrases_douteuses": [
+          "L'employeur et le salarié doivent convenir du télétravail par accord écrit (clause contractuelle ou avenant)"
+        ]
+      },
+      {
+        "question": "Puis-je être licencié si je refuse le télétravail ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 44,
+        "reponse": "Non.\n\nLe refus pour le salarié d'accepter de passer en télétravail n'est pas un motif de rupture du contrat de travail [1].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Un CDI doit-il obligatoirement être écrit ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 52,
+        "reponse": "Non.\n\n**Règle générale** : Le CDI à temps plein ne fait pas obligatoirement l'objet d'un contrat écrit [1].\n\n**Exception** : Le CDI à temps partiel doit être écrit [1].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Quelle est la forme normale du contrat de travail ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 58,
+        "reponse": "**Réponse :** CDI.\n\n**Règle générale :**\nLe contrat de travail à durée indéterminée (CDI) constitue la **forme normale et générale de recrutement d'un salarié par un employeur** [1].\n\n**Exceptions :**\nL’employeur peut recourir à un autre type de contrat (CDD ou intérim) **uniquement s’il justifie d’une situation autorisant ce recours** [1].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Comment informer son employeur de sa démission ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 61,
+        "reponse": "Il n'y a pas de procédure légale imposée pour notifier une démission [1].\n\n**Règle générale** :\nLe salarié peut informer son employeur ou son supérieur hiérarchique **oralement ou par écrit** [1].\n\n**Exceptions** :\nCertaines conventions collectives **obligent l'envoi d'une lettre de démission** [4].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "A-t-on droit au chômage après une démission ?",
+        "exactitude": 1.0,
+        "fidelite": 0.6666666666666666,
+        "secondes": 74,
+        "reponse": "Non.\n\nLa démission ne donne pas droit à une indemnisation au titre de l’assurance chômage, sauf en cas de démission légitime [1].\n\n**Règle générale** : La démission ne permet pas de percevoir des allocations chômage [1].\n\n**Exception** : La démission peut être considérée comme légitime par France Travail, ce qui permet au salarié de prétendre à l’allocation d’aide au retour à l’emploi (ARE) dans les conditions habituelles [1].",
+        "phrases_douteuses": [
+          "La démission ne permet pas de percevoir des allocations chômage"
+        ]
+      },
+      {
+        "question": "Peut-on conclure une rupture conventionnelle pendant la période d'essai ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 39,
+        "reponse": "Non.\n\nLa rupture conventionnelle ne peut pas être conclue durant la période d'essai [1].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Quel est le délai de rétractation d'une rupture conventionnelle ?",
+        "exactitude": 1.0,
+        "fidelite": 0.6666666666666666,
+        "secondes": 72,
+        "reponse": "**15 jours calendaires** [1].\n\n**Règle générale** :\nLe délai de rétractation est de **15 jours calendaires** pour l’employeur et le salarié [1].\n\n**Exceptions** :\n- Si le dernier jour du délai tombe un **samedi, dimanche, jour férié ou chômé**, le délai est prolongé jusqu’au **1er jour ouvrable suivant** [1].",
+        "phrases_douteuses": [
+          "Exceptions : Si le dernier jour du délai tombe un samedi, dimanche, jour férié ou chômé, le délai est prolongé jusqu’au 1er jour ouvrable suivant"
+        ]
+      },
+      {
+        "question": "Quel est le montant minimum de l'indemnité de rupture conventionnelle ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 60,
+        "reponse": "Non, il n'y a pas de montant fixe indiqué dans les passages.\n\n**Règle générale** :\nL'indemnité de rupture conventionnelle ne peut pas être inférieure à l'**indemnité légale de licenciement ou conventionnelle** [1].\n\n**Exceptions** :\nIl est possible de négocier un montant **supérieur** à l'indemnité légale ou conventionnelle [1].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Faut-il faire un préavis lors d'une rupture conventionnelle ?",
+        "exactitude": 1.0,
+        "fidelite": 1.0,
+        "secondes": 40,
+        "reponse": "Non.\n\nAucun préavis n'est prévu dans le cadre de la rupture conventionnelle [1].",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Quel est le délai d'homologation d'une rupture conventionnelle ?",
+        "exactitude": 1.0,
+        "fidelite": 0.6666666666666666,
+        "secondes": 92,
+        "reponse": "**15 jours ouvrables** (à partir du lendemain de la réception de la demande).\n\n**Règle générale** :\nLe délai d'homologation est de **15 jours ouvrables** à compter du lendemain de la réception de la demande par la DDETSPP [1].\n\n**Exceptions** :\n- Si le dernier jour du délai tombe un **samedi, dimanche ou jour férié/chômé**, le délai est prolongé jusqu’au **1er jour ouvrable suivant** [1].\n- Pour un **salarié protégé**, la demande est adressée à l’**inspecteur du travail** et le délai de réponse est de **2 mois** (en l’absence de réponse, la demande est considérée comme rejetée) [3].",
+        "phrases_douteuses": [
+          "Exceptions : Pour un salarié protégé, la demande est adressée à l’inspecteur du travail et le délai de réponse est de 2 mois (en l’absence de réponse, la demande est considérée comme rejetée)"
+        ]
+      },
+      {
+        "question": "Quel est le montant du SMIC ?",
+        "exactitude": 1.0,
+        "fidelite": null,
+        "secondes": 6,
+        "reponse": "Je ne trouve pas cette information dans mes sources.",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Quel est le taux de TVA ?",
+        "exactitude": 1.0,
+        "fidelite": null,
+        "secondes": 5,
+        "reponse": "Je ne trouve pas cette information dans mes sources.",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Comment calculer ma retraite ?",
+        "exactitude": 1.0,
+        "fidelite": null,
+        "secondes": 5,
+        "reponse": "Je ne trouve pas cette information dans mes sources.",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Comment créer une auto-entreprise ?",
+        "exactitude": 1.0,
+        "fidelite": null,
+        "secondes": 5,
+        "reponse": "Je ne trouve pas cette information dans mes sources.",
+        "phrases_douteuses": []
+      },
+      {
+        "question": "Quelle est la capitale de la France ?",
+        "exactitude": 1.0,
+        "fidelite": null,
+        "secondes": 6,
+        "reponse": "Je ne trouve pas cette information dans mes sources.",
+        "phrases_douteuses": []
+      }
+    ]
+  }
+}

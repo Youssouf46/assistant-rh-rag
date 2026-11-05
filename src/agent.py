@@ -45,7 +45,8 @@ def refuse(state: State) -> dict:
 
 
 def verify(state: State) -> dict:
-    return {"checks": check_claims(split_claims(state["answer"]), state["chunks"])}
+    return {"checks": check_claims(split_claims(state["answer"]), state["chunks"], state["search_question"])}
+
 
 
 # --- L'aiguillage : le code choisit le nœud suivant ---

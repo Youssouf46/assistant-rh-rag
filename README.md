@@ -70,6 +70,10 @@ python src/agent.py --verifier "Comment sont majorées les heures supplémentair
 python src/agent.py --graph         # schéma du graphe (Mermaid)
 python src/ask.py "Combien de jours de congés payés a un salarié ?"     # chaîne simple, sans aiguillage
 python src/search.py "télétravail"  # recherche seule, sans LLM : vecteurs, BM25, hybride, hybride + reranking
+
+# 3. Évaluation sur le jeu de test (data/eval/questions.json)
+python src/evaluate.py              # recherche + refus hors sujet (≈ 6 min sur CPU)
+python src/evaluate.py --reponses   # + exactitude et fidélité des réponses (≈ 30 min de plus)
 ```
 
 ## Structure du projet
@@ -77,6 +81,7 @@ python src/search.py "télétravail"  # recherche seule, sans LLM : vecteurs, BM
 ```
 ├── data/
 │   ├── sources.txt     # URL des pages officielles à indexer
+│   ├── eval/           # jeu de test (questions.json) et résultats datés des évaluations
 │   └── raw/            # PDF à indexer (optionnel)
 ├── src/
 │   ├── config.py       # paramètres : modèles, taille des morceaux, nombre de résultats
@@ -84,6 +89,7 @@ python src/search.py "télétravail"  # recherche seule, sans LLM : vecteurs, BM
 │   ├── search.py       # recherche hybride (vecteurs + BM25, fusion RRF) puis reranking (sans LLM)
 │   ├── agent.py        # agent LangGraph : reformuler → chercher → répondre ou refuser → vérifier
 │   ├── verify.py       # vérification de chaque phrase citée contre sa source
+│   ├── evaluate.py     # évaluation : rappel, MRR, refus, exactitude, fidélité
 │   ├── app.py          # interface web de chat (Streamlit, streaming, sources notées)
 │   ├── ask.py          # briques : prompts, reformulation, recherche, chaîne de réponse
 │   └── compare.py      # comparaison de modèles sur les mêmes questions
@@ -179,6 +185,39 @@ Coût : ≈ 16 s par phrase sur CPU, d'où une vérification **à la demande**. 
 
 *Exemple réel : la phrase « le droit est proportionnel au temps travaillé » est absente de la source (qui dit l'inverse : 2,5 jours par mois, à temps plein comme à temps partiel) et elle est signalée. La première alerte (« comme le salarié à temps plein ») est une fausse alerte, conséquence assumée du prompt strict.*
 
+## Évaluation
+
+Jeu de test : **29 questions** (`data/eval/questions.json`) couvrant les 8 fiches, dont 5 hors sujet. Pour chaque question : le **passage exact** de la fiche qui contient la réponse et les **faits clés** attendus.
+
+| Métrique | Équivalent RAGAS | Ce qu'elle mesure | LLM ? |
+|---|---|---|---|
+| **Rappel@4** | *context recall* | Le passage attendu est-il dans les 4 morceaux envoyés au LLM ? | Non |
+| **MRR** | *context precision* | À quel rang ? (1ᵉʳ = 1, 2ᵉ = 0,5…) | Non |
+| **Refus** | | Hors sujet refusé, et seulement le hors sujet | Non |
+| **Exactitude** | *answer correctness* | Les faits clés attendus sont-ils dans la réponse ? | Non |
+| **Fidélité** | *faithfulness* | Part des phrases citées justifiées par leur source (nœud `verify`) | Oui |
+
+### Recherche : chaque étape du projet, mesurée
+
+| Méthode | Rappel@4 | MRR |
+|---|---|---|
+| Vecteurs seuls | 88 % | 0,74 |
+| BM25 seul | 96 % | 0,83 |
+| Hybride (fusion RRF) | 96 % | 0,83 |
+| **Hybride + reranking** | **100 %** | **0,98** |
+
+### Réponses de l'agent (ministral-3:8b, CPU)
+
+| Métrique | Résultat |
+|---|---|
+| Refus hors sujet | **29/29** |
+| Exactitude (faits clés) | **100 %** |
+| Fidélité | **83 %** (≈ 56 s par question, vérification comprise) |
+
+La fidélité est une **estimation basse** : le vérificateur strict produit encore quelques fausses alertes. L'évaluation a d'abord servi à **corriger le vérificateur lui-même** : sur les mêmes réponses, la v1 donnait 65 % avec ≈ 18 fausses alertes ; la v2 (étiquettes « Règle générale : » retirées, question et titre de section transmis au vérificateur) donne 83 % et **détecte 2 vraies erreurs de plus** (une limite de 12 h étendue à tort, une condition « dans la limite de 1/10ᵉ » oubliée).
+
+**Pourquoi pas la bibliothèque RAGAS ?** RAGAS 0.4.3 (et 0.3.9, 0.2.15) importe `langchain_community.chat_models.vertexai`, supprimé de `langchain-community` 0.4, et rétrograderait `rich` et `tenacity`. Plutôt que rétrograder toute la pile LangChain 1.x, les métriques principales sont réimplémentées ; celles de la recherche sont déterministes, sans LLM, donc rapides et reproductibles.
+
 ## Feuille de route
 
 - [x] Installation : Ollama, modèles, environnement Python
@@ -193,7 +232,7 @@ Coût : ≈ 16 s par phrase sur CPU, d'où une vérification **à la demande**. 
 - [x] Reranking (cross-encoder bge-reranker-v2-m3, 100 % hors ligne)
 - [x] Agent LangGraph : reformulation, recherche, refus hors sujet par seuil de pertinence
 - [x] Mode vérifié : vérification de chaque phrase citée contre sa source (nœud LangGraph à la demande)
-- [ ] Évaluation avec RAGAS
+- [x] Évaluation sur un jeu de test de 29 questions (métriques de type RAGAS : rappel, MRR, exactitude, fidélité)
 - [ ] API FastAPI, Docker, CI GitHub Actions
 
 ## Avertissement
