@@ -1,5 +1,7 @@
 # Assistant RH souverain : RAG 100 % local sur le droit du travail français
 
+[![Tests](https://github.com/Youssouf46/assistant-rh-rag/actions/workflows/tests.yml/badge.svg)](https://github.com/Youssouf46/assistant-rh-rag/actions/workflows/tests.yml)
+
 Assistant qui répond aux questions des salariés et des services RH (congés payés, heures supplémentaires, télétravail, rupture conventionnelle…) à partir de **sources officielles**, en **citant ses sources**.
 
 Tout tourne **en local** avec des modèles open source (Ollama) : aucune donnée ne quitte la machine, ce qui répond aux contraintes du **RGPD** et de la souveraineté des données.
@@ -74,7 +76,11 @@ python src/agent.py --graph         # schéma du graphe (Mermaid)
 python src/ask.py "Combien de jours de congés payés a un salarié ?"     # chaîne simple, sans aiguillage
 python src/search.py "télétravail"  # recherche seule, sans LLM : vecteurs, BM25, hybride, hybride + reranking
 
-# 3. Évaluation sur le jeu de test (data/eval/questions.json)
+# 3. Tests automatiques (sans LLM, ≈ 10 s)
+pip install pytest
+pytest -v
+
+# 4. Évaluation sur le jeu de test (data/eval/questions.json)
 python src/evaluate.py              # recherche + refus hors sujet (≈ 6 min sur CPU)
 python src/evaluate.py --reponses   # + exactitude et fidélité des réponses (≈ 30 min de plus)
 ```
@@ -97,6 +103,8 @@ python src/evaluate.py --reponses   # + exactitude et fidélité des réponses (
 │   ├── api.py          # API web (FastAPI) : POST /ask, GET /health
 │   ├── ask.py          # briques : prompts, reformulation, recherche, chaîne de réponse
 │   └── compare.py      # comparaison de modèles sur les mêmes questions
+├── tests/              # tests pytest (fonctions déterministes, sans LLM)
+├── .github/workflows/  # CI : tests lancés à chaque push (GitHub Actions)
 ├── docs/               # captures d'écran du README
 ├── requirements.txt
 └── README.md
@@ -252,6 +260,21 @@ Réponse (extrait) :
 - Formats d'entrée et de sortie décrits par des modèles **Pydantic** : une question de moins de 3 ou de plus de 500 caractères est refusée (erreur **422**) avant d'atteindre l'agent.
 - `history` (4 derniers messages au plus) et `verify` sont facultatifs ; `checks` n'est rempli que si `verify` vaut `true`.
 
+## Tests et intégration continue
+
+**47 tests pytest** (`pytest -v`, ≈ 10 s) sur la logique écrite à la main, sans Ollama ni modèle :
+
+| Fichier | Ce qui est protégé |
+|---|---|
+| `test_search.py` | Découpage en mots pour BM25 ; fusion RRF (dont le cas réel « 7ᵉ en vecteurs + 3ᵉ en BM25 → 1ᵉʳ ») |
+| `test_ask.py` | Détection des questions de suite : les questions claires ne sont **pas** reformulées |
+| `test_verify.py` | Découpage des réponses en phrases citées : `[1, 2]`, étiquettes « Règle générale : » retirées, titre ajouté aux puces, numéro de source inexistant détecté sans LLM |
+| `test_evaluate.py` | Outils de comparaison et format du jeu de test (chaque question a un passage et des faits) |
+
+Plusieurs tests sont des **tests de non-régression** : ils protègent des corrections faites en cours de projet. La qualité des réponses du LLM, elle, est mesurée par l'évaluation.
+
+**CI GitHub Actions** (`.github/workflows/tests.yml`) : à chaque `push`, les tests sont lancés sur une machine Linux neuve (PyTorch installé en version CPU, plus légère) ; durée ≈ 2 min.
+
 ## Feuille de route
 
 - [x] Installation : Ollama, modèles, environnement Python
@@ -268,7 +291,7 @@ Réponse (extrait) :
 - [x] Mode vérifié : vérification de chaque phrase citée contre sa source (nœud LangGraph à la demande)
 - [x] Évaluation sur un jeu de test de 29 questions (métriques de type RAGAS : rappel, MRR, exactitude, fidélité)
 - [x] API FastAPI (`POST /ask`, `GET /health`, documentation `/docs`)
-- [ ] Tests automatiques et CI GitHub Actions
+- [x] Tests automatiques (47, pytest) et CI GitHub Actions
 - [ ] Docker
 
 ## Avertissement
