@@ -64,7 +64,10 @@ python src/ingest.py
 # 2a. Interface web de chat
 streamlit run src/app.py            # http://localhost:8501
 
-# 2b. Ou en ligne de commande
+# 2b. API web (FastAPI) : documentation interactive sur http://localhost:8000/docs
+uvicorn api:app --app-dir src --port 8000
+
+# 2c. Ou en ligne de commande
 python src/agent.py "Combien de jours de congés payés a un salarié ?"   # agent LangGraph
 python src/agent.py --verifier "Comment sont majorées les heures supplémentaires ?"   # avec vérification
 python src/agent.py --graph         # schéma du graphe (Mermaid)
@@ -91,6 +94,7 @@ python src/evaluate.py --reponses   # + exactitude et fidélité des réponses (
 │   ├── verify.py       # vérification de chaque phrase citée contre sa source
 │   ├── evaluate.py     # évaluation : rappel, MRR, refus, exactitude, fidélité
 │   ├── app.py          # interface web de chat (Streamlit, streaming, sources notées)
+│   ├── api.py          # API web (FastAPI) : POST /ask, GET /health
 │   ├── ask.py          # briques : prompts, reformulation, recherche, chaîne de réponse
 │   └── compare.py      # comparaison de modèles sur les mêmes questions
 ├── docs/               # captures d'écran du README
@@ -218,6 +222,36 @@ La fidélité est une **estimation basse** : le vérificateur strict produit enc
 
 **Pourquoi pas la bibliothèque RAGAS ?** RAGAS 0.4.3 (et 0.3.9, 0.2.15) importe `langchain_community.chat_models.vertexai`, supprimé de `langchain-community` 0.4, et rétrograderait `rich` et `tenacity`. Plutôt que rétrograder toute la pile LangChain 1.x, les métriques principales sont réimplémentées ; celles de la recherche sont déterministes, sans LLM, donc rapides et reproductibles.
 
+## API
+
+Le même agent que l'interface Streamlit est exposé en **API REST** (FastAPI), pour être appelé par un autre logiciel (intranet RH, messagerie d'entreprise…). Documentation interactive générée automatiquement sur `/docs`.
+
+| Route | Rôle |
+|---|---|
+| `GET /health` | État du service et modèles utilisés |
+| `POST /ask` | Pose une question, renvoie la réponse sourcée |
+
+Requête :
+```json
+{"question": "Et si je suis à temps partiel ?",
+ "history": [{"role": "user", "content": "Combien de jours de congés payés a un salarié ?"},
+             {"role": "assistant", "content": "30 jours ouvrables, soit 2,5 jours par mois [1]."}],
+ "verify": false}
+```
+
+Réponse (extrait) :
+```json
+{"answer": "… 2,5 jours ouvrables par mois de travail effectif [1] …",
+ "search_question": "Un salarié à temps partiel a-t-il le même nombre de jours de congés payés qu'un salarié à temps plein ?",
+ "sources": [{"title": "Congés payés du salarié dans le secteur privé",
+              "url": "https://www.service-public.fr/particuliers/vosdroits/F2258",
+              "score": 0.992, "extract": "…"}],
+ "checks": null}
+```
+
+- Formats d'entrée et de sortie décrits par des modèles **Pydantic** : une question de moins de 3 ou de plus de 500 caractères est refusée (erreur **422**) avant d'atteindre l'agent.
+- `history` (4 derniers messages au plus) et `verify` sont facultatifs ; `checks` n'est rempli que si `verify` vaut `true`.
+
 ## Feuille de route
 
 - [x] Installation : Ollama, modèles, environnement Python
@@ -233,7 +267,9 @@ La fidélité est une **estimation basse** : le vérificateur strict produit enc
 - [x] Agent LangGraph : reformulation, recherche, refus hors sujet par seuil de pertinence
 - [x] Mode vérifié : vérification de chaque phrase citée contre sa source (nœud LangGraph à la demande)
 - [x] Évaluation sur un jeu de test de 29 questions (métriques de type RAGAS : rappel, MRR, exactitude, fidélité)
-- [ ] API FastAPI, Docker, CI GitHub Actions
+- [x] API FastAPI (`POST /ask`, `GET /health`, documentation `/docs`)
+- [ ] Tests automatiques et CI GitHub Actions
+- [ ] Docker
 
 ## Avertissement
 
