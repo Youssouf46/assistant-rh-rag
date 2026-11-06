@@ -1,0 +1,29 @@
+# Lance l'API et l'interface Streamlit avec la même image.
+# Prérequis sur la machine hôte : Ollama démarré (ministral-3:8b, bge-m3), base construite
+# et reranker déjà téléchargé dans le cache Hugging Face.
+services:
+  api:
+    build: .
+    image: assistant-rh-rag
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./chroma_db:/app/chroma_db
+      - ${USERPROFILE}/.cache/huggingface:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  app:
+    image: assistant-rh-rag
+    pull_policy: never
+    depends_on:
+      - api
+    command: ["streamlit", "run", "src/app.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true"]
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./chroma_db:/app/chroma_db
+      - ${USERPROFILE}/.cache/huggingface:/root/.cache/huggingface

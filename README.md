@@ -10,7 +10,8 @@ Tout tourne **en local** avec des modèles open source (Ollama) : aucune donnée
 
 *Réponse en mode vérifié : chaque phrase citée a été vérifiée contre sa source officielle.*
 
-> 🚧 Projet en cours de construction. Ce README est complété à chaque étape.
+> ✅ Feuille de route terminée : RAG hybride avec reranking, agent LangGraph avec vérification, évaluation chiffrée,
+> API FastAPI, tests et CI, Docker. Pistes d'amélioration en fin de page.
 
 ---
 
@@ -56,6 +57,19 @@ python -m venv .venv
 .venv\Scripts\activate          # Windows (Linux/macOS : source .venv/bin/activate)
 pip install -r requirements.txt
 ```
+
+### Avec Docker (API + interface en une commande)
+
+Prérequis : [Docker Desktop](https://www.docker.com/products/docker-desktop/), Ollama démarré sur la machine (modèles ci-dessus), la base construite une fois (`python src/ingest.py`) et le reranker présent dans le cache Hugging Face (téléchargé au premier lancement hors Docker).
+
+```bash
+docker compose up --build      # API : http://localhost:8000/docs · interface : http://localhost:8501
+docker compose down            # arrêter et supprimer les conteneurs
+```
+
+- L'image (`Dockerfile`, ≈ 3 Go avec PyTorch CPU) contient Python, les bibliothèques et le code ; les **modèles restent hors de l'image** : Ollama tourne sur l'hôte, joint par `OLLAMA_HOST=http://host.docker.internal:11434`.
+- La base `chroma_db/` et le cache Hugging Face sont **montés** (volumes) depuis le disque ; `docker-compose.yml` utilise `${USERPROFILE}` (Windows ; `${HOME}` sous Linux/macOS).
+- Contrôle de santé : Docker appelle `/health` toutes les 30 s (`docker compose ps` → `healthy`).
 
 ## Utilisation
 
@@ -106,6 +120,9 @@ python src/evaluate.py --reponses   # + exactitude et fidélité des réponses (
 ├── tests/              # tests pytest (fonctions déterministes, sans LLM)
 ├── .github/workflows/  # CI : tests lancés à chaque push (GitHub Actions)
 ├── docs/               # captures d'écran du README
+├── .streamlit/         # réglages Streamlit (statistiques d'usage désactivées : rien ne sort de la machine)
+├── Dockerfile          # image de l'application (Python + bibliothèques + code)
+├── docker-compose.yml  # lance l'API et l'interface ensemble
 ├── requirements.txt
 └── README.md
 ```
@@ -292,7 +309,14 @@ Plusieurs tests sont des **tests de non-régression** : ils protègent des corre
 - [x] Évaluation sur un jeu de test de 29 questions (métriques de type RAGAS : rappel, MRR, exactitude, fidélité)
 - [x] API FastAPI (`POST /ask`, `GET /health`, documentation `/docs`)
 - [x] Tests automatiques (47, pytest) et CI GitHub Actions
-- [ ] Docker
+- [x] Docker : image de l'application et `docker compose` (API + interface), Ollama sur l'hôte
+
+## Pistes d'amélioration
+
+- **Fidélité** : boucle de correction `verify → revise` dans le graphe (réécrire les phrases non justifiées), réaliste sur GPU.
+- **Corpus** : Code du travail, conventions collectives (ex. Syntec), documents internes ; tester d'autres tailles de morceaux et mesurer l'effet sur le rappel.
+- **Production** : servir le modèle avec vLLM sur GPU, plusieurs processus pour l'API, journalisation et suivi des requêtes.
+- **Évaluation** : agrandir le jeu de test (questions de suite, pièges), lancer l'évaluation de la recherche dans la CI.
 
 ## Avertissement
 
